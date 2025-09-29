@@ -1,14 +1,16 @@
-const mysql = require('mysql2');
+const { Pool } = require('pg');
 require('dotenv').config();
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+const pool = new Pool({
+  // This single URL from Neon contains all the connection details
+  connectionString: process.env.DATABASE_URL,
+  // This is required to connect securely to Neon
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-module.exports = pool.promise();
+// We export an object with a 'query' method to match the new way of querying
+module.exports = {
+  query: (text, params) => pool.query(text, params),
+};
