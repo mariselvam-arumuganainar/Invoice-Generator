@@ -10,12 +10,12 @@ const itemRoutes = require('./src/routes/itemRoutes');
 const app = express();
 const port = process.env.PORT || 5000;
 
-// --- DEFINITIVE FIX: Specific CORS Configuration ---
+// --- DEFINITIVE FIX: Specific CORS Configuration for Production ---
 
 // 1. Define the list of URLs that are allowed to make requests to your API
 const allowedOrigins = [
-  'http://localhost:5173',                      // Your local frontend for development
-  'https://your-netlify-app-url.netlify.app'    // IMPORTANT: Replace with your actual live Netlify URL
+  'http://localhost:5173',          // Your local frontend for development
+  'https://sivasakthiandco.netlify.app' // Your live Netlify frontend URL
 ];
 
 // 2. Create the CORS options object
@@ -24,11 +24,11 @@ const corsOptions = {
     // Allow requests that have no origin (like mobile apps or Postman/Thunder Client)
     if (!origin) return callback(null, true);
 
-    // If the incoming request's origin is in our allow list, allow it
     if (allowedOrigins.indexOf(origin) !== -1) {
+      // If the request's origin is in our allow list, allow it
       callback(null, true);
     } else {
-      // Otherwise, block it
+      // Otherwise, block it with a CORS error
       callback(new Error('Not allowed by CORS'));
     }
   }
@@ -55,6 +55,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  // The 0.0.0.0 is important for hosting platforms like Render
   console.log(`Server is running on port: ${port}`);
 });
