@@ -2,7 +2,8 @@ const itemService = require('../services/itemService');
 
 const getAllItems = async (req, res) => {
   try {
-    const items = await itemService.getAll();
+    // FIX: Using the correct function name
+    const items = await itemService.getAllItems();
     res.status(200).json(items);
   } catch (error) {
     console.error('--- ERROR FETCHING ITEMS ---');
@@ -13,7 +14,8 @@ const getAllItems = async (req, res) => {
 
 const createItem = async (req, res) => {
   try {
-    const newItem = await itemService.create(req.body);
+    // FIX: Using the correct function name
+    const newItem = await itemService.createItem(req.body);
     res.status(201).json(newItem);
   } catch (error) {
     console.error('--- ERROR CREATING ITEM ---');
@@ -24,7 +26,8 @@ const createItem = async (req, res) => {
 
 const updateItem = async (req, res) => {
   try {
-    const updatedItem = await itemService.update(req.params.id, req.body);
+    // FIX: Using the correct function name
+    const updatedItem = await itemService.updateItem(req.params.id, req.body);
     res.status(200).json(updatedItem);
   } catch (error) {
     console.error('--- ERROR UPDATING ITEM ---');
@@ -35,7 +38,8 @@ const updateItem = async (req, res) => {
 
 const deleteItem = async (req, res) => {
   try {
-    await itemService.remove(req.params.id);
+    // FIX: Using the correct function name
+    await itemService.deleteItem(req.params.id);
     res.status(200).json({ message: `Item with ID ${req.params.id} deleted.` });
   } catch (error) {
     console.error('--- ERROR DELETING ITEM ---');

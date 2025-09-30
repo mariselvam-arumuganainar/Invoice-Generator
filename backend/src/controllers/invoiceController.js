@@ -1,9 +1,8 @@
 const invoiceService = require('../services/invoiceService');
 
 const createInvoice = async (req, res) => {
-  // Log the exact data being received by the server
   console.log('--- CREATE INVOICE REQUEST BODY ---');
-  console.log(JSON.stringify(req.body, null, 2)); // Pretty-print the JSON
+  console.log(JSON.stringify(req.body, null, 2));
 
   try {
     const invoiceData = req.body;
@@ -14,7 +13,6 @@ const createInvoice = async (req, res) => {
     const newInvoiceId = await invoiceService.createInvoice(invoiceData);
     res.status(201).json({ message: 'Invoice created successfully', invoiceId: newInvoiceId });
   } catch (error) {
-    // Log the full, detailed error to the backend console
     console.error('--- ERROR CREATING INVOICE ---');
     console.error(error);
     res.status(500).json({ message: 'Failed to create invoice', error: error.message });
@@ -34,7 +32,8 @@ const getAllInvoices = async (req, res) => {
 
 const getInvoiceById = async (req, res) => {
   try {
-    const invoice = await invoiceService.getById(req.params.id);
+    // FIX: Changed from getById() to getInvoiceById() to match the service
+    const invoice = await invoiceService.getInvoiceById(req.params.id);
     res.status(200).json(invoice);
   } catch (error) {
     console.error(`--- ERROR FETCHING INVOICE ID ${req.params.id} ---`);
