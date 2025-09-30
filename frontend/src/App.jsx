@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import api from "./services/api";
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
-
-// --- NEW: Import Toastify components and our notification service ---
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
@@ -10,7 +8,6 @@ import {
   notifyError,
   notifyInfo,
 } from "./services/notification";
-
 import InvoiceDocument from "./components/InvoiceDocument";
 import ClientManager from "./components/ClientManager";
 import ItemManager from "./components/ItemManager";
@@ -28,10 +25,11 @@ const FileTextIcon = () => (
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    {" "}
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />{" "}
-    <polyline points="14 2 14 8 20 8" /> <line x1="16" y1="13" x2="8" y2="13" />{" "}
-    <line x1="16" y1="17" x2="8" y2="17" /> <polyline points="10 9 9 9 8 9" />{" "}
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <polyline points="10 9 9 9 8 9" />
   </svg>
 );
 const PackageIcon = () => (
@@ -46,17 +44,15 @@ const PackageIcon = () => (
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    {" "}
-    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />{" "}
-    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />{" "}
-    <line x1="12" y1="22.08" x2="12" y2="12" />{" "}
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+    <line x1="12" y1="22.08" x2="12" y2="12" />
   </svg>
 );
 
 const roundToTwo = (num) => Math.round((num + Number.EPSILON) * 100) / 100;
 
 function App() {
-  // All your existing state remains the same
   const [isClient, setIsClient] = useState(false);
   const [clients, setClients] = useState([]);
   const [itemsCatalog, setItemsCatalog] = useState([]);
@@ -86,9 +82,17 @@ function App() {
 
   useEffect(() => {
     setIsClient(true);
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    document.body.className = prefersDark ? "dark-theme" : "light-theme";
   }, []);
 
-  // --- UPGRADE: Error handling for initial data fetch ---
+  const toggleTheme = () => {
+    document.body.classList.toggle("dark-theme");
+    document.body.classList.toggle("light-theme");
+  };
+
   const fetchAllData = async () => {
     setLoading(true);
     try {
@@ -102,10 +106,7 @@ function App() {
       setInvoices(invoicesRes.data);
     } catch (error) {
       console.error("Failed to fetch initial data:", error);
-      // UPGRADE: Replaced alert with toast notification
-      notifyError(
-        "Could not fetch data. Please check your connection and refresh."
-      );
+      notifyError("Could not fetch data. Please check connection.");
     } finally {
       setLoading(false);
     }
@@ -115,7 +116,6 @@ function App() {
     fetchAllData();
   }, []);
 
-  // All your calculation logic remains the same
   const totalDays = useMemo(() => {
     if (!hiringFrom || !hiringTo) return 0;
     const diff =
@@ -147,7 +147,6 @@ function App() {
     [subtotal, sgstAmount, cgstAmount]
   );
 
-  // All your item handling logic remains the same
   const handleItemChange = (index, field, value) => {
     const newItems = [...invoiceItems];
     newItems[index][field] = value;
@@ -203,89 +202,70 @@ function App() {
   const removeItem = (index) =>
     setInvoiceItems(invoiceItems.filter((_, i) => i !== index));
 
-  // --- UPGRADE: Professional error handling for Client operations ---
   const handleSaveClient = async (clientData) => {
     try {
       const isEditing = !!editingClient;
-      let message = "";
       if (isEditing) {
         await api.updateClient(editingClient.id, clientData);
-        message = "Client updated successfully!";
+        notifySuccess("Client updated successfully!");
       } else {
         await api.createClient(clientData);
-        message = "Client created successfully!";
+        notifySuccess("Client created successfully!");
       }
       await fetchAllData();
       setShowClientManager(false);
       setEditingClient(null);
-      notifySuccess(message); // Success notification
     } catch (error) {
-      // Get the specific error message from our backend
-      const errorMessage =
-        error.response?.data?.message ||
-        "An unknown error occurred while saving the client.";
-      notifyError(errorMessage); // Error notification
+      notifyError(
+        error.response?.data?.message || "An unknown error occurred."
+      );
     }
   };
+
   const handleDeleteClient = async (clientId) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this client? This action cannot be undone."
-      )
-    ) {
+    if (window.confirm("Are you sure you want to delete this client?")) {
       try {
         await api.deleteClient(clientId);
         await fetchAllData();
         notifySuccess("Client deleted successfully.");
       } catch (error) {
-        const errorMessage =
-          error.response?.data?.message || "Failed to delete client.";
-        notifyError(errorMessage);
+        notifyError(
+          error.response?.data?.message || "Failed to delete client."
+        );
       }
     }
   };
 
-  // --- UPGRADE: Professional error handling for Item operations ---
   const handleSaveItem = async (itemData) => {
     try {
       const isEditing = !!editingItem;
-      let message = "";
       if (isEditing) {
         await api.updateItem(editingItem.id, itemData);
-        message = "Item updated successfully!";
+        notifySuccess("Item updated successfully!");
       } else {
         await api.createItem(itemData);
-        message = "Item created successfully!";
+        notifySuccess("Item created successfully!");
       }
       await fetchAllData();
       setShowItemManager(false);
       setEditingItem(null);
-      notifySuccess(message);
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || "Error saving item.";
-      notifyError(errorMessage);
+      notifyError(error.response?.data?.message || "Error saving item.");
     }
   };
+
   const handleDeleteItem = async (itemId) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this item from the catalog?"
-      )
-    ) {
+    if (window.confirm("Are you sure you want to delete this item?")) {
       try {
         await api.deleteItem(itemId);
         await fetchAllData();
         notifySuccess("Item deleted successfully.");
       } catch (error) {
-        const errorMessage =
-          error.response?.data?.message || "Failed to delete item.";
-        notifyError(errorMessage);
+        notifyError(error.response?.data?.message || "Failed to delete item.");
       }
     }
   };
 
-  // --- UPGRADE: Professional error handling for Invoice creation ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (
@@ -314,15 +294,11 @@ function App() {
       await api.createInvoice(invoiceData);
       await fetchAllData();
       notifySuccess("Invoice created successfully!");
-      // Optionally reset the form here
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || "Error creating invoice.";
-      notifyError(errorMessage);
+      notifyError(error.response?.data?.message || "Error creating invoice.");
     }
   };
 
-  // The rest of your functions and UI remain the same
   const dashboardStats = useMemo(
     () => ({
       totalIncome: invoices.reduce(
@@ -363,7 +339,6 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* --- NEW: The ToastContainer for all notifications --- */}
       <ToastContainer
         position="top-right"
         autoClose={4000}
@@ -376,63 +351,67 @@ function App() {
         pauseOnHover
         theme="colored"
       />
-           {" "}
       <header className="app-header">
-                <h1>Invoice Portal</h1>       {" "}
-        <p>SIVASAKTHI & CO. Scaffolding</p>     {" "}
+        <div>
+          <h1>Invoice Portal</h1>
+          <p>SIVASAKTHI & CO. Scaffolding</p>
+        </div>
+        <button
+          onClick={toggleTheme}
+          className="theme-toggle-btn"
+          title="Toggle Theme"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
       </header>
-      {/* The rest of your JSX remains the same */}
       <main>
-               {" "}
         <section className="bento-grid">
-                   {" "}
-          <div className="bento-box box-large glass-effect">
-                        <h3>Overall Income</h3>           {" "}
+          <div className="bento-box box-large">
+            <h3>Overall Income</h3>
             <p>
               ₹
               {dashboardStats.totalIncome.toLocaleString("en-IN", {
                 minimumFractionDigits: 2,
               })}
             </p>
-                     {" "}
           </div>
-                   {" "}
           <div
-            className="bento-box glass-effect clickable"
+            className="bento-box clickable"
             onClick={() => setShowInvoiceManager(true)}
           >
-                       {" "}
             <div className="box-icon">
-              {" "}
-              <FileTextIcon />{" "}
+              <FileTextIcon />
             </div>
-                        <h3>Invoices Generated</h3>           {" "}
-            <p>{dashboardStats.invoiceCount}</p>         {" "}
+            <h3>Invoices Generated</h3>
+            <p>{dashboardStats.invoiceCount}</p>
           </div>
-                   {" "}
-          <div className="bento-box glass-effect">
-                       {" "}
+          <div className="bento-box">
             <div className="box-icon">
-              {" "}
-              <PackageIcon />{" "}
+              <PackageIcon />
             </div>
-                        <h3>Items on Hire (Est.)</h3>           {" "}
-            <p>{dashboardStats.itemsOut}</p>         {" "}
+            <h3>Items on Hire (Est.)</h3>
+            <p>{dashboardStats.itemsOut}</p>
           </div>
-                 {" "}
         </section>
-               {" "}
         <section className="invoice-form-section">
-          {/* ... all your form JSX is unchanged ... */}         {" "}
-          <h2>Create New Invoice</h2>         {" "}
+          <h2>Create New Invoice</h2>
           <form className="invoice-form" onSubmit={handleSubmit}>
-                       {" "}
             <div className="form-row">
-                           {" "}
               <div className="form-group">
-                                <label>To Address (*)</label>               {" "}
+                <label>To Address (*)</label>
                 <div className="input-with-button">
-                                   {" "}
                   <select
                     value={selectedClient?.id || ""}
                     onChange={(e) =>
@@ -442,21 +421,15 @@ function App() {
                     }
                     required
                   >
-                                       {" "}
                     <option value="" disabled>
-                      {" "}
-                      Select a Client{" "}
+                      Select a Client
                     </option>
-                                       {" "}
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {" "}
-                        {c.name}{" "}
+                        {c.name}
                       </option>
                     ))}
-                                     {" "}
                   </select>
-                                   {" "}
                   <button
                     type="button"
                     className="manage-btn"
@@ -465,53 +438,41 @@ function App() {
                       setShowClientManager(true);
                     }}
                   >
-                    {" "}
-                    Manage{" "}
+                    Manage
                   </button>
-                                 {" "}
                 </div>
-                               {" "}
                 {selectedClient && (
                   <div className="client-details">
-                    {" "}
-                    {selectedClient.address} <br /> GSTIN:{" "}
-                    {selectedClient.gstin}{" "}
+                    {selectedClient.address}
+                    <br />
+                    GSTIN: {selectedClient.gstin}
                   </div>
                 )}
-                             {" "}
               </div>
-                           {" "}
               <div className="form-group">
-                {" "}
-                <label>Hiring From (*)</label>{" "}
+                <label>Hiring From (*)</label>
                 <input
                   type="date"
                   value={hiringFrom}
                   onChange={(e) => setHiringFrom(e.target.value)}
                   required
-                />{" "}
+                />
               </div>
-                           {" "}
               <div className="form-group">
-                {" "}
-                <label>To Date (*)</label>{" "}
+                <label>To Date (*)</label>
                 <input
                   type="date"
                   value={hiringTo}
                   onChange={(e) => setHiringTo(e.target.value)}
                   required
-                />{" "}
+                />
               </div>
-                           {" "}
               <div className="form-group total-days-display">
-                {" "}
-                <label>Total Days</label> <p>{totalDays}</p>{" "}
+                <label>Total Days</label>
+                <p>{totalDays}</p>
               </div>
-                         {" "}
             </div>
-                       {" "}
             <div className="form-row items-table">
-                           {" "}
               <div
                 style={{
                   display: "flex",
@@ -519,7 +480,7 @@ function App() {
                   alignItems: "center",
                 }}
               >
-                                <h3>Items</h3>               {" "}
+                <h3>Items</h3>
                 <button
                   type="button"
                   className="manage-btn"
@@ -528,15 +489,11 @@ function App() {
                     setShowItemManager(true);
                   }}
                 >
-                  {" "}
-                  Manage Items{" "}
+                  Manage Items
                 </button>
-                             {" "}
               </div>
-                           {" "}
               {invoiceItems.map((item, index) => (
                 <div className="item-row" key={index}>
-                                   {" "}
                   <select
                     className="item-description-select"
                     value={item.catalog_id || ""}
@@ -544,18 +501,13 @@ function App() {
                       handleCatalogItemSelect(index, e.target.value)
                     }
                   >
-                                       {" "}
-                    <option value="">Select an item...</option>                 
-                     {" "}
+                    <option value="">Select an item...</option>
                     {itemsCatalog.map((catItem) => (
                       <option key={catItem.id} value={catItem.id}>
-                        {" "}
-                        {catItem.description}{" "}
+                        {catItem.description}
                       </option>
                     ))}
-                                     {" "}
                   </select>
-                                   {" "}
                   <input
                     type="text"
                     placeholder="Or type custom description"
@@ -565,7 +517,6 @@ function App() {
                     }
                     required
                   />
-                                   {" "}
                   <input
                     type="text"
                     placeholder="HSN"
@@ -574,7 +525,6 @@ function App() {
                       handleItemChange(index, "hsn_code", e.target.value)
                     }
                   />
-                                   {" "}
                   <input
                     type="number"
                     placeholder="Sq.Ft (*)"
@@ -584,7 +534,6 @@ function App() {
                     }
                     required
                   />
-                                   {" "}
                   <input
                     type="number"
                     placeholder="Rate (*)"
@@ -594,122 +543,90 @@ function App() {
                     }
                     required
                   />
-                                   {" "}
                   <input
                     type="number"
                     placeholder="Amount"
                     value={item.amount}
                     readOnly
                   />
-                                   {" "}
                   <button
                     type="button"
                     className="remove-btn"
                     onClick={() => removeItem(index)}
                   >
-                    {" "}
-                    －{" "}
+                    －
                   </button>
-                                 {" "}
                 </div>
               ))}
-                           {" "}
               <button type="button" className="add-item-btn" onClick={addItem}>
-                {" "}
-                + Add Custom Item{" "}
+                + Add Custom Item
               </button>
-                         {" "}
             </div>
-                       {" "}
             <div className="form-row totals-section">
-                           {" "}
               <div className="taxes">
-                               {" "}
                 <div className="form-group">
-                  {" "}
-                  <label>SGST (%)</label>{" "}
+                  <label>SGST (%)</label>
                   <input
                     type="number"
                     value={sgst}
                     onChange={(e) => setSgst(parseFloat(e.target.value) || 0)}
-                  />{" "}
+                  />
                 </div>
-                               {" "}
                 <div className="form-group">
-                  {" "}
-                  <label>CGST (%)</label>{" "}
+                  <label>CGST (%)</label>
                   <input
                     type="number"
                     value={cgst}
                     onChange={(e) => setCgst(parseFloat(e.target.value) || 0)}
-                  />{" "}
+                  />
                 </div>
-                             {" "}
               </div>
-                           {" "}
               <div className="summary">
-                {" "}
                 <p>
-                  {" "}
-                  Subtotal: <span>₹{subtotal.toFixed(2)}</span>{" "}
-                </p>{" "}
+                  Subtotal: <span>₹{subtotal.toFixed(2)}</span>
+                </p>
                 <p>
-                  {" "}
-                  SGST: <span>₹{sgstAmount.toFixed(2)}</span>{" "}
-                </p>{" "}
+                  SGST: <span>₹{sgstAmount.toFixed(2)}</span>
+                </p>
                 <p>
-                  {" "}
-                  CGST: <span>₹{cgstAmount.toFixed(2)}</span>{" "}
-                </p>{" "}
-                <hr />{" "}
+                  CGST: <span>₹{cgstAmount.toFixed(2)}</span>
+                </p>
+                <hr />
                 <h3>
-                  {" "}
-                  Grand Total: <span>₹{grandTotal.toFixed(2)}</span>{" "}
-                </h3>{" "}
+                  Grand Total: <span>₹{grandTotal.toFixed(2)}</span>
+                </h3>
               </div>
-                         {" "}
             </div>
-                       {" "}
             <div className="form-actions">
-              {" "}
               <button
                 type="button"
                 className="action-btn preview"
                 onClick={handlePreviewClick}
               >
-                {" "}
-                Preview Invoice{" "}
-              </button>{" "}
+                Preview Invoice
+              </button>
               <button type="submit" className="action-btn save">
-                {" "}
-                Save Invoice{" "}
-              </button>{" "}
+                Save Invoice
+              </button>
             </div>
-                     {" "}
           </form>
-                 {" "}
         </section>
-               {" "}
         <section className="client-list">
-                    <h2>Client Directory</h2>         {" "}
+          <h2>Client Directory</h2>
           <table>
-                       {" "}
             <thead>
-              {" "}
               <tr>
-                {" "}
-                <th>Name</th> <th>GSTIN</th> <th>Actions</th>{" "}
-              </tr>{" "}
+                <th>Name</th>
+                <th>GSTIN</th>
+                <th>Actions</th>
+              </tr>
             </thead>
-                       {" "}
             <tbody>
-                           {" "}
               {clients.map((client) => (
                 <tr key={client.id}>
-                                    <td>{client.name}</td>                 {" "}
-                  <td>{client.gstin}</td>                 {" "}
+                  <td>{client.name}</td>
+                  <td>{client.gstin}</td>
                   <td className="actions-cell">
-                                       {" "}
                     <button
                       onClick={() => {
                         setEditingClient(client);
@@ -717,51 +634,38 @@ function App() {
                       }}
                       className="edit-btn"
                     >
-                      {" "}
-                      Edit{" "}
+                      Edit
                     </button>
-                                       {" "}
                     <button
                       onClick={() => handleDeleteClient(client.id)}
                       className="delete-btn"
                     >
-                      {" "}
-                      Delete{" "}
+                      Delete
                     </button>
-                                     {" "}
                   </td>
-                                 {" "}
                 </tr>
               ))}
-                         {" "}
             </tbody>
-                     {" "}
           </table>
-                 {" "}
         </section>
-               {" "}
         <section className="client-list">
-                    <h2>Item Catalog</h2>         {" "}
+          <h2>Item Catalog</h2>
           <table>
-                       {" "}
             <thead>
-              {" "}
               <tr>
-                {" "}
-                <th>Description</th> <th>HSN Code</th> <th>Default Rate</th>{" "}
-                <th>Actions</th>{" "}
-              </tr>{" "}
+                <th>Description</th>
+                <th>HSN Code</th>
+                <th>Default Rate</th>
+                <th>Actions</th>
+              </tr>
             </thead>
-                       {" "}
             <tbody>
-                           {" "}
               {itemsCatalog.map((item) => (
                 <tr key={item.id}>
-                                    <td>{item.description}</td>                 {" "}
-                  <td>{item.hsn_code}</td>                 {" "}
-                  <td>₹{item.default_rate}</td>                 {" "}
+                  <td>{item.description}</td>
+                  <td>{item.hsn_code}</td>
+                  <td>₹{item.default_rate}</td>
                   <td className="actions-cell">
-                                       {" "}
                     <button
                       onClick={() => {
                         setEditingItem(item);
@@ -769,31 +673,21 @@ function App() {
                       }}
                       className="edit-btn"
                     >
-                      {" "}
-                      Edit{" "}
+                      Edit
                     </button>
-                                       {" "}
                     <button
                       onClick={() => handleDeleteItem(item.id)}
                       className="delete-btn"
                     >
-                      {" "}
-                      Delete{" "}
+                      Delete
                     </button>
-                                     {" "}
                   </td>
-                                 {" "}
                 </tr>
               ))}
-                         {" "}
             </tbody>
-                     {" "}
           </table>
-                 {" "}
         </section>
-             {" "}
       </main>
-           {" "}
       {showClientManager && (
         <ClientManager
           client={editingClient}
@@ -801,7 +695,6 @@ function App() {
           onClose={() => setShowClientManager(false)}
         />
       )}
-           {" "}
       {showItemManager && (
         <ItemManager
           item={editingItem}
@@ -809,48 +702,34 @@ function App() {
           onClose={() => setShowItemManager(false)}
         />
       )}
-           {" "}
       {isClient && showInvoiceManager && (
         <InvoiceManager
           invoices={invoices}
           onClose={() => setShowInvoiceManager(false)}
         />
       )}
-           {" "}
       {isClient && pdfData && (
         <div className="modal-overlay" onClick={closePreview}>
-                   {" "}
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                       {" "}
             <button className="close-btn" onClick={closePreview}>
-              {" "}
-              &times;{" "}
+              &times;
             </button>
-                        <h3>Invoice Preview</h3>           {" "}
+            <h3>Invoice Preview</h3>
             <div className="pdf-viewer-container">
-                           {" "}
               <PDFViewer width="100%" height="100%">
-                {" "}
-                <InvoiceDocument invoice={pdfData} />{" "}
+                <InvoiceDocument invoice={pdfData} />
               </PDFViewer>
-                         {" "}
             </div>
-                       {" "}
             <PDFDownloadLink
               document={<InvoiceDocument invoice={pdfData} />}
               fileName={`Invoice-PREVIEW.pdf`}
               className="action-btn download-pdf"
             >
-                           {" "}
-              {({ loading }) => (loading ? "Loading..." : "Download PDF")}     
-                   {" "}
+              {({ loading }) => (loading ? "Loading..." : "Download PDF")}
             </PDFDownloadLink>
-                     {" "}
           </div>
-                 {" "}
         </div>
       )}
-         {" "}
     </div>
   );
 }
