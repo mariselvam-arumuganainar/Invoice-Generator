@@ -10,38 +10,37 @@ const itemRoutes = require('./src/routes/itemRoutes');
 const app = express();
 const port = process.env.PORT || 5000;
 
-// --- DEFINITIVE FIX: Specific CORS Configuration for Production ---
+// --- DEFINITIVE CORS FIX for Preflight Requests ---
 
-// 1. Define the list of URLs that are allowed to make requests to your API
 const allowedOrigins = [
-  'http://localhost:5173',          // Your local frontend for development
-  'https://sivasakthiandco.netlify.app' // Your live Netlify frontend URL
+  'http://localhost:5173',
+  'https://sivasakthiandco.netlify.app'
 ];
 
-// 2. Create the CORS options object
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests that have no origin (like mobile apps or Postman/Thunder Client)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      // If the request's origin is in our allow list, allow it
+    // Allow requests with no origin (like mobile apps or Postman) and requests from our allow list
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      // Otherwise, block it with a CORS error
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error('This origin is not allowed by CORS'));
     }
-  }
+  },
+  // This is crucial for preflight requests. It tells the browser which methods are allowed.
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  // This tells the browser which headers it can send.
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  // This handles a success status for the preflight OPTIONS request.
+  optionsSuccessStatus: 204
 };
 
-// 3. Use the new options in your middleware
-// This replaces the old `app.use(cors());`
+// This must be the VERY FIRST middleware your app uses.
+// It will handle the preflight 'OPTIONS' request and set the correct headers.
 app.use(cors(corsOptions));
 
 // --- End of CORS Configuration ---
 
-
-// Standard Middleware
+// Standard Middleware (must come AFTER CORS)
 app.use(express.json());
 
 // Register API Routes
